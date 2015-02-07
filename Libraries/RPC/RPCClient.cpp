@@ -570,6 +570,7 @@ void RPCClient::sendRequest(std::shared_ptr<RemoteRPCServer> server, std::vector
 		}
 		_sendCounter--;
 		if(http.isFinished()) responseData = *http.getContent();
+		return;
     }
     catch(const std::exception& ex)
     {

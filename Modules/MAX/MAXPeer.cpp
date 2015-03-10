@@ -1090,18 +1090,13 @@ std::shared_ptr<BaseLib::RPC::Variable> MAXPeer::putParamset(int32_t channel, Ba
 			if(changedParameters.empty() || changedParameters.begin()->second.empty()) return std::shared_ptr<BaseLib::RPC::Variable>(new BaseLib::RPC::Variable(BaseLib::RPC::VariableType::rpcVoid));
 
 			std::shared_ptr<MAXCentral> central = std::dynamic_pointer_cast<MAXCentral>(getCentral());
-			std::shared_ptr<PacketQueue> queue(new PacketQueue(_physicalInterface, PacketQueueType::CONFIG));
-			queue->noSending = true;
-			queue->peer = central->getPeer(_peerID);
 
-			bool firstPacket = true;
 			for(std::map<int32_t, std::map<int32_t, std::vector<uint8_t>>>::iterator i = changedParameters.begin(); i != changedParameters.end(); ++i)
 			{
 				std::vector<uint8_t> payload;
 				payload.push_back(0);
 				payload.push_back(i->first);
-				std::shared_ptr<MAXPacket> configPacket = std::shared_ptr<MAXPacket>(new MAXPacket(_messageCounter, 0x10, 0x00, central->getAddress(), _address, payload, firstPacket && (getRXModes() & Device::RXModes::burst)));
-				firstPacket = false;
+				std::shared_ptr<MAXPacket> configPacket = std::shared_ptr<MAXPacket>(new MAXPacket(_messageCounter, 0x10, 0x00, central->getAddress(), _address, payload, getRXModes() & Device::RXModes::burst));
 
 				for(std::map<int32_t, std::vector<uint8_t>>::iterator j = i->second.begin(); j != i->second.end(); ++j)
 				{
@@ -1121,14 +1116,17 @@ std::shared_ptr<BaseLib::RPC::Variable> MAXPeer::putParamset(int32_t channel, Ba
 
 				if(configPacket->payload()->size() > 2)
 				{
+					std::shared_ptr<PacketQueue> queue(new PacketQueue(_physicalInterface, PacketQueueType::CONFIG));
+					queue->noSending = true;
+					queue->peer = central->getPeer(_peerID);
 					queue->push(configPacket);
 					queue->push(central->getMessages()->find(DIRECTIONIN, 0x02, 0x02, std::vector<std::pair<uint32_t, int32_t>>()));
 					payload.clear();
 					setMessageCounter(_messageCounter + 1);
+					pendingQueues->push(queue);
 				}
 			}
 
-			pendingQueues->push(queue);
 			serviceMessages->setConfigPending(true);
 			if(!onlyPushing) central->enqueuePendingQueues(_address);
 			raiseRPCUpdateDevice(_peerID, channel, _serialNumber + ":" + std::to_string(channel), 0);

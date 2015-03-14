@@ -136,15 +136,6 @@ void terminate(int32_t signalNumber)
 			gcry_control(GCRYCTL_RESUME_SECMEM_WARN);
 			exit(0);
 		}
-		else if(signalNumber == SIGABRT)
-		{
-			if(_disposing)
-			{
-				signal(signalNumber, SIG_DFL); //Reset signal handler for the current signal to default
-				kill(getpid(), signalNumber); //Generate core dump
-			}
-			GD::out.printError("Error: Signal SIGABRT (6) received.");
-		}
 		else if(signalNumber == SIGHUP)
 		{
 			if(!_startUpComplete)
@@ -182,7 +173,7 @@ void terminate(int32_t signalNumber)
 		}
 		else
 		{
-			GD::out.printCritical("Critical: Signal " + std::to_string(signalNumber) + " received. Stopping Homegear...");
+			if(!_disposing) GD::out.printCritical("Critical: Signal " + std::to_string(signalNumber) + " received. Stopping Homegear...");
 			signal(signalNumber, SIG_DFL); //Reset signal handler for the current signal to default
 			kill(getpid(), signalNumber); //Generate core dump
 		}

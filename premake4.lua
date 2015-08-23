@@ -40,12 +40,32 @@ solution "homegear"
          "FORTIFY_SOURCE=2",
          "GCRYPT_NO_DEPRECATED",
          "PH7_ENABLE_THREADS",
+         "BIDCOSTICC1100",
          --"BIDCOSTICC1101",
          --"BIDCOSRTLSDRLAN",
       }
       linkoptions { "-Wl,-rpath=/lib/homegear", "-Wl,-rpath=/usr/lib/homegear" }
 
+   configuration { "macosx", "gmake" }
+      --GCRYPT_NO_DEPRECATED only works after modifying the header file. See: http://lists.gnupg.org/pipermail/gcrypt-devel/2011-September/001844.html
+      defines
+      {
+         "FORTIFY_SOURCE=2",
+         "GCRYPT_NO_DEPRECATED",
+         "PH7_ENABLE_THREADS",
+         --"BIDCOSTICC1100",
+         --"BIDCOSTICC1101",
+         --"BIDCOSRTLSDRLAN",
+      }
+      buildoptions { "-stdlib=libc++" }
+      linkoptions { "-stdlib=libc++", "-undefined dynamic_lookup" }
+      flags { "Symbols" }
+
    configuration { "rpi", "gmake" }
+      defines
+      {
+         "BIDCOSTICC1100",
+      }
       includedirs { "./ARM\ headers" }
       libdirs { "./ARM\ libraries" }
 

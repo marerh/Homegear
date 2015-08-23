@@ -220,9 +220,11 @@ void getExecutablePath()
 	char path[1024];
 	if(!getcwd(path, 1024)) throw BaseLib::Exception("Could not get working directory.");
 	GD::workingDirectory = std::string(path);
+#ifndef __APPLE__
 	ssize_t length = readlink("/proc/self/exe", path, sizeof(path) - 1);
 	if (length == -1) throw BaseLib::Exception("Could not get executable path.");
 	path[length] = '\0';
+#endif
 	GD::executablePath = std::string(path);
 	GD::executablePath = GD::executablePath.substr(0, GD::executablePath.find_last_of("/") + 1);
 }
@@ -443,10 +445,11 @@ int main(int argc, char* argv[])
     	getrlimit(RLIMIT_CORE, &limits);
     	limits.rlim_cur = limits.rlim_max;
     	setrlimit(RLIMIT_CORE, &limits);
+#ifndef __APPLE__
     	getrlimit(RLIMIT_RTPRIO, &limits);
     	limits.rlim_cur = limits.rlim_max;
     	setrlimit(RLIMIT_RTPRIO, &limits);
-
+#endif
     	//Analyze core dump with:
     	//gdb homegear core
     	//where
@@ -632,7 +635,9 @@ int main(int argc, char* argv[])
 			interfaces.clear();
         }
 
+#ifndef __APPLE__
         rl_bind_key('\t', rl_abort); //no autocompletion
+#endif
 
 		char* inputBuffer;
         std::string input;

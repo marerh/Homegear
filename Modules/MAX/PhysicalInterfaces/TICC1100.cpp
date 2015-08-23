@@ -26,6 +26,7 @@
  * version.  If you delete this exception statement from all source
  * files in the program, then also delete it here.
  */
+#ifdef BIDCOSTICC1100
 
 #include "TICC1100.h"
 #include "../MAXPacket.h"
@@ -937,3 +938,5 @@ void TICC1100::mainThread()
     }
 }
 }
+
+#endif

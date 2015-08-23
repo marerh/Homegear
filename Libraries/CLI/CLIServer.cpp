@@ -31,6 +31,10 @@
 #include "../GD/GD.h"
 #include "../../Modules/Base/BaseLib.h"
 
+#ifdef __APPLE__
+#define MSG_NOSIGNAL 0
+#endif
+
 namespace CLI {
 
 Server::Server()
@@ -263,25 +267,40 @@ void Server::getFileDescriptor(bool deleteOldSocket)
 		}
 		else if(stat(GD::socketPath.c_str(), &sb) == 0) return;
 
-		_serverFileDescriptor = GD::bl->fileDescriptorManager.add(socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0));
+		_serverFileDescriptor = GD::bl->fileDescriptorManager.add(socket(PF_UNIX, SOCK_STREAM
+#ifndef __APPLE__		
+		  | SOCK_NONBLOCK
+#endif
+		  , 0));
 		if(_serverFileDescriptor->descriptor == -1) throw(BaseLib::Exception("Couldn't create socket: " + GD::socketPath + ". Error: " + strerror(errno)));
+#ifdef __APPLE__
+                fcntl(_serverFileDescriptor->descriptor, F_SETFL, O_NONBLOCK);
+#endif	
 		int32_t reuseAddress = 1;
 		if(setsockopt(_serverFileDescriptor->descriptor, SOL_SOCKET, SO_REUSEADDR, (void*)&reuseAddress, sizeof(int32_t)) == -1)
 		{
 			GD::bl->fileDescriptorManager.close(_serverFileDescriptor);
 			throw(BaseLib::Exception("Couldn't set socket options: " + GD::socketPath + ". Error: " + strerror(errno)));
 		}
+#ifdef __APPLE__
+		int32_t optValue = 1;
+		if(setsockopt(_serverFileDescriptor->descriptor, SOL_SOCKET, SO_NOSIGPIPE, (void*)&optValue, sizeof(int32_t)) == -1)
+		{
+			GD::bl->fileDescriptorManager.close(_serverFileDescriptor);
+			throw(BaseLib::Exception("Couldn't set socket options: " + GD::socketPath + ". Error: " + strerror(errno)));
+		}
+#endif
 		sockaddr_un serverAddress;
 		serverAddress.sun_family = AF_UNIX;
-		if(GD::socketPath.length() > 107)
+		if(GD::socketPath.length() > (sizeof(serverAddress.sun_path) -1))
 		{
 			//Check for buffer overflow
 			GD::out.printCritical("Critical: Socket path is too long.");
 			return;
 		}
-		strncpy(serverAddress.sun_path, GD::socketPath.c_str(), 107);
-		serverAddress.sun_path[107] = 0; //Just to make sure the string is null terminated.
-		bool bound = (bind(_serverFileDescriptor->descriptor, (sockaddr*)&serverAddress, strlen(serverAddress.sun_path) + sizeof(serverAddress.sun_family)) != -1);
+		strncpy(serverAddress.sun_path, GD::socketPath.c_str(), (sizeof(serverAddress.sun_path) -1));
+		serverAddress.sun_path[(sizeof(serverAddress.sun_path) -1)] = 0; //Just to make sure the string is null terminated.
+		bool bound = (bind(_serverFileDescriptor->descriptor, (sockaddr*)&serverAddress, sizeof(struct sockaddr_un)) != -1);
 		if(_serverFileDescriptor->descriptor == -1 || !bound || listen(_serverFileDescriptor->descriptor, _backlog) == -1)
 		{
 			GD::bl->fileDescriptorManager.close(_serverFileDescriptor);

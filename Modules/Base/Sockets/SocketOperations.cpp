@@ -30,6 +30,10 @@
 #include "SocketOperations.h"
 #include "../BaseLib.h"
 
+#ifdef __APPLE__
+#define MSG_NOSIGNAL 0
+#endif
+
 namespace BaseLib
 {
 SocketOperations::SocketOperations(BaseLib::Obj* baseLib)
@@ -442,13 +446,31 @@ void SocketOperations::getConnection()
 			freeaddrinfo(serverInfo);
 			throw SocketOperationException("Could not create socket for server " + ipAddress + " on port " + _port + ": " + strerror(errno));
 		}
+#ifdef __APPLE__
 		int32_t optValue = 1;
+		if(setsockopt(_socketDescriptor->descriptor, SOL_SOCKET, SO_NOSIGPIPE, (void*)&optValue, sizeof(int32_t)) == -1)
+		{
+			freeaddrinfo(serverInfo);
+			_bl->fileDescriptorManager.shutdown(_socketDescriptor);
+			throw SocketOperationException("Could not set socket options for server " + ipAddress + " on port " + _port + ": " + strerror(errno));
+		}
+#endif
+		optValue = 1;
 		if(setsockopt(_socketDescriptor->descriptor, SOL_SOCKET, SO_KEEPALIVE, (void*)&optValue, sizeof(int32_t)) == -1)
 		{
 			freeaddrinfo(serverInfo);
 			_bl->fileDescriptorManager.shutdown(_socketDescriptor);
 			throw SocketOperationException("Could not set socket options for server " + ipAddress + " on port " + _port + ": " + strerror(errno));
 		}
+#ifdef __APPLE__
+		optValue = 30;
+		if(setsockopt(_socketDescriptor->descriptor, IPPROTO_TCP, TCP_KEEPALIVE, (void*)&optValue, sizeof(int32_t)) == -1)
+		{
+			freeaddrinfo(serverInfo);
+			_bl->fileDescriptorManager.shutdown(_socketDescriptor);
+			throw SocketOperationException("Could not set socket options for server " + ipAddress + " on port " + _port + ": " + strerror(errno));
+		}
+#else
 		optValue = 30;
 		if(setsockopt(_socketDescriptor->descriptor, SOL_TCP, TCP_KEEPIDLE, (void*)&optValue, sizeof(int32_t)) == -1)
 		{
@@ -470,6 +492,7 @@ void SocketOperations::getConnection()
 			_bl->fileDescriptorManager.shutdown(_socketDescriptor);
 			throw SocketOperationException("Could not set socket options for server " + ipAddress + " on port " + _port + ": " + strerror(errno));
 		}
+#endif
 
 		if(!(fcntl(_socketDescriptor->descriptor, F_GETFL) & O_NONBLOCK))
 		{

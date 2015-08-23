@@ -29,6 +29,7 @@
 
 #include "HM-LGW.h"
 #include "../GD.h"
+#include <random>
 
 namespace BidCoS
 {

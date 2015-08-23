@@ -26,6 +26,7 @@
  * version.  If you delete this exception statement from all source
  * files in the program, then also delete it here.
  */
+#ifdef BIDCOSTICC1100
 
 #ifndef TICC1100_H_
 #define TICC1100_H_
@@ -227,3 +228,4 @@ protected:
 }
 
 #endif /* TICC1100_H_ */
+#endif /* BIDCOSTICC1100 */

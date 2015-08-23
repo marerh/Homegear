@@ -122,7 +122,9 @@ std::shared_ptr<BaseLib::Systems::IPhysicalInterface> BidCoS::createPhysicalDevi
 		if(settings->type == "cul") device.reset(new CUL(settings));
 		else if(settings->type == "coc") device.reset(new COC(settings));
 		else if(settings->type == "cuno") device.reset(new CUNO(settings));
+#ifdef BIDCOSTICC1100
 		else if(settings->type == "cc1100") device.reset(new TICC1100(settings));
+#endif
 #ifdef BIDCOSTICC1101
 		else if(settings->type == "devtest") device.reset(new TICC1101(settings));
 #endif

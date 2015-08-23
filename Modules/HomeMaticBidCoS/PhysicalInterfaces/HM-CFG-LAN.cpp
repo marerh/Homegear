@@ -29,6 +29,7 @@
 
 #include "HM-CFG-LAN.h"
 #include "../GD.h"
+#include <random>
 
 namespace BidCoS
 {

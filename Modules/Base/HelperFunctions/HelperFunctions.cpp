@@ -30,6 +30,7 @@
 #include "HelperFunctions.h"
 #include "../BaseLib.h"
 #include "sys/resource.h"
+#include <random>
 
 namespace BaseLib
 {
@@ -92,8 +93,8 @@ HelperFunctions::~HelperFunctions()
 
 bool HelperFunctions::fileExists(std::string filename)
 {
-	std::ifstream in(filename.c_str());
-	return in;
+	struct stat fileInfo;
+	return stat(filename.c_str(), &fileInfo) == 0;
 }
 
 int32_t HelperFunctions::isDirectory(std::string path, bool& result)
@@ -112,7 +113,11 @@ int32_t HelperFunctions::getFileLastModifiedTime(const std::string& filename)
 {
 	struct stat attributes;
 	if(stat(filename.c_str(), &attributes) == -1) return -1;
+#ifdef __APPLE__
+	return attributes.st_mtimespec.tv_sec;
+#else
 	return attributes.st_mtim.tv_sec;
+#endif
 }
 
 std::string HelperFunctions::getFileContent(std::string filename)

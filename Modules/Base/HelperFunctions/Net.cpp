@@ -30,8 +30,11 @@
 #include "Net.h"
 #include "HelperFunctions.h"
 
-#include <asm/types.h>
-#include <netinet/ether.h>
+#ifndef __APPLE__
+  #include <asm/types.h>
+  #include <netinet/ether.h>
+ #endif
+
 #include <netinet/in.h>
 #include <net/if.h>
 #include <ifaddrs.h>
@@ -39,8 +42,12 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
+
+#ifndef __APPLE__
+  #include <linux/netlink.h>
+  #include <linux/rtnetlink.h>
+#endif
+
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
@@ -51,9 +58,13 @@ namespace BaseLib
 {
 int32_t Net::readNlSocket(int32_t sockFd, char* buffer, int32_t bufferLength, uint32_t messageIndex, uint32_t pid)
 {
+
 	struct nlmsghdr* nlHeader = nullptr;
 	int32_t readLength = 0;
 	int32_t messageLength = 0;
+#ifdef __APPLE__
+#warning readNlSocket not implemented for OS X !
+#else
 	do
 	{
 		if(messageLength >= bufferLength) throw NetException("nlBuffer is too small.");
@@ -68,11 +79,15 @@ int32_t Net::readNlSocket(int32_t sockFd, char* buffer, int32_t bufferLength, ui
 
 		if ((nlHeader->nlmsg_flags & NLM_F_MULTI) == 0) break;
 	} while((nlHeader->nlmsg_seq != messageIndex) || (nlHeader->nlmsg_pid != pid));
+#endif
 	return messageLength;
 }
 
 void Net::getRoutes(RouteInfoList& routeInfo)
 {
+#ifdef __APPLE__
+#warning getRoutes not implemented for OS X !
+#else
 	struct nlmsghdr* nlMessage = nullptr;
 	std::shared_ptr<RouteInfo> info;
 	uint32_t messageIndex = 0;
@@ -144,6 +159,7 @@ void Net::getRoutes(RouteInfoList& routeInfo)
 		routeInfo.push_back(info);
 	}
 	close(socketDescriptor);
+#endif	
 }
 
 std::string Net::getMyIpAddress()

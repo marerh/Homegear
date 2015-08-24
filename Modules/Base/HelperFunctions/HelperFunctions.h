@@ -38,6 +38,8 @@
 #include <fstream>
 #include <sstream>
 #include <mutex>
+#include <vector>
+#include <random>
 
 #include <dirent.h>
 #include <sys/types.h>

@@ -93,6 +93,26 @@ solution "homegear"
       }
       linkoptions { "-Wl,-rpath=/lib/homegear", "-Wl,-rpath=/usr/lib/homegear" }
 
+   configuration { "macosx", "gmake" }
+      --GCRYPT_NO_DEPRECATED only works after modifying the header file. See: http://lists.gnupg.org/pipermail/gcrypt-devel/2011-September/001844.html
+      defines
+      {
+         "FORTIFY_SOURCE=2",
+         "GCRYPT_NO_DEPRECATED",
+         --Needed because of gnutls.h/php_config.h conflict.
+         "HAVE_SSIZE_T=1",
+         --"SCRIPTENGINE",
+         "EVENTHANDLER",
+         "OPENSSL",
+         --"SPIINTERFACES",
+         --"BIDCOSTICC1100",
+         --"BIDCOSTICC1101",
+         --"BIDCOSRTLSDRLAN",
+      }
+      buildoptions { "-stdlib=libc++" }
+      linkoptions { "-stdlib=libc++", "-undefined dynamic_lookup" }
+      flags { "Symbols" }
+
    configuration { "rpi", "gmake" }
       defines
       {
@@ -654,6 +674,9 @@ solution "homegear"
       --Inserted after linkoptions above
       configuration { "native", "linux", "gmake" }
         linkoptions { "-Wl,-Bstatic", "-lrpc", "-Wl,-Bdynamic", "-ldl", "-lpthread", "-lreadline", "-lgcrypt", "-lgnutls", "-Wl,-Bstatic", "-luser", "-lcli", "-levents", "-lgd", "-lupnp", "-lmqtt", "-ldatabase", "-lscriptengine", "-lbase", "-Wl,-Bdynamic", "-lgpg-error", "-lsqlite3", "-Wl,-Bstatic", "-lpaho.mqtt.c", "-Wl,-Bdynamic", "-lcrypto", "-lssl", "-Wl,-Bdynamic", "-lphp5", "-Wl,--as-needed" }
+
+      configuration { "macosx", "gmake" }
+        linkoptions { "-lrpc", "-ldl", "-lpthread", "-lreadline", "-lgcrypt", "-lgnutls", "-luser", "-lcli", "-levents", "-lgd", "-lupnp", "-lmqtt", "-ldatabase", "-lbase", "-lgpg-error", "-lsqlite3", "-lpaho.mqtt.c", "-lcrypto", "-lssl" }
 
       configuration { "bsd", "linux", "gmake" }
         --No "-ldl"

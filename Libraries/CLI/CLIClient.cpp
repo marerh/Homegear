@@ -39,6 +39,12 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+#ifdef __APPLE__
+  // For OS X MSG_NOSIGNAL is not defined
+  // Instead socket option SO_NOSIGPIPE has to be used
+  #define MSG_NOSIGNAL 0
+#endif
+
 namespace CLI {
 
 Client::Client()
@@ -110,26 +116,32 @@ void Client::start(std::string command)
 	{
 		for(int32_t i = 0; i < 2; i++)
 		{
-			_fileDescriptor = GD::bl->fileDescriptorManager.add(socket(AF_LOCAL, SOCK_STREAM, 0));
+			_fileDescriptor = GD::bl->fileDescriptorManager.add(socket(PF_UNIX, SOCK_STREAM, 0));
 			if(!_fileDescriptor || _fileDescriptor->descriptor == -1)
 			{
 				GD::out.printError("Could not create socket.");
 				return;
 			}
-
+#ifdef __APPLE__
+			int32_t optValue = 1;
+			if(setsockopt(_fileDescriptor->descriptor, SOL_SOCKET, SO_NOSIGPIPE, (void*)&optValue, sizeof(int32_t)) == -1)
+			{
+				GD::out.printError("Could not set SO_NOSIGPIPE for CLI Client socket.");
+				return;
+			}
+#endif
 			if(GD::bl->debugLevel >= 4 && i == 0) std::cout << "Info: Trying to connect..." << std::endl;
 			sockaddr_un remoteAddress;
-			remoteAddress.sun_family = AF_LOCAL;
-			//104 is the size on BSD systems - slightly smaller than in Linux
-			if(GD::socketPath.length() > 104)
+			remoteAddress.sun_family = AF_UNIX;
+			if(GD::socketPath.length() > (sizeof(remoteAddress.sun_path) - 1))
 			{
 				//Check for buffer overflow
 				GD::out.printCritical("Critical: Socket path is too long.");
 				return;
 			}
-			strncpy(remoteAddress.sun_path, GD::socketPath.c_str(), 104);
-			remoteAddress.sun_path[103] = 0; //Just to make sure it is null terminated.
-			if(connect(_fileDescriptor->descriptor, (struct sockaddr*)&remoteAddress, strlen(remoteAddress.sun_path) + 1 + sizeof(remoteAddress.sun_family)) == -1)
+			strncpy(remoteAddress.sun_path, GD::socketPath.c_str(), (sizeof(remoteAddress.sun_path) - 1));
+			remoteAddress.sun_path[(sizeof(remoteAddress.sun_path) - 1)] = 0; //Just to make sure it is null terminated.
+			if(connect(_fileDescriptor->descriptor, (struct sockaddr*)&remoteAddress, sizeof(struct sockaddr_un)) == -1)
 			{
 				GD::bl->fileDescriptorManager.shutdown(_fileDescriptor);
 				if(i == 0)
@@ -150,9 +162,9 @@ void Client::start(std::string command)
 		if(GD::bl->debugLevel >= 4) std::cout << "Info: Connected." << std::endl;
 
 		_pingThread = std::thread(&CLI::Client::ping, this);
-
+#ifndef __APPLE__
 		rl_bind_key('\t', rl_abort); //no autocompletion
-
+#endif
 		std::string level = "";
 		std::string lastCommand;
 		std::string currentCommand;

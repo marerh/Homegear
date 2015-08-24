@@ -45,7 +45,9 @@
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <sys/sysctl.h> //For BSD systems
-
+#ifdef __APPLE__
+  #include <libproc.h>
+#endif
 #include <cmath>
 #include <vector>
 #include <memory>
@@ -281,6 +283,24 @@ void getExecutablePath()
 	}
 	GD::workingDirectory = std::string(path);
 #ifdef KERN_PROC //BSD system
+
+#ifdef __APPLE__
+    int ret;
+    pid_t pid; 
+    char pathbuf[PROC_PIDPATHINFO_MAXSIZE];
+
+    pid = getpid();
+    ret = proc_pidpath (pid, pathbuf, sizeof(pathbuf));
+    if ( ret <= 0 ) {
+        fprintf(stderr, "PID %d: proc_pidpath ();\n", pid);
+        fprintf(stderr, "    %s\n", strerror(errno));
+    } else {
+        printf("proc %d: %s\n", pid, pathbuf);
+    }
+    GD::executablePath = std::string(pathbuf);
+    GD::executablePath = GD::executablePath.substr(0, GD::executablePath.find_last_of("/") + 1);
+#else
+
 	int mib[4];
 	mib[0] = CTL_KERN;
 	mib[1] = KERN_PROC;
@@ -296,6 +316,7 @@ void getExecutablePath()
 	path[sizeof(path) - 1] = '\0';
 	GD::executablePath = std::string(path);
 	GD::executablePath = GD::executablePath.substr(0, GD::executablePath.find_last_of("/") + 1);
+#endif
 #else
 	int length = readlink("/proc/self/exe", path, sizeof(path) - 1);
 	if (length < 0)
@@ -709,9 +730,9 @@ int main(int argc, char* argv[])
         	GD::out.printInfo("Starting UPnP server...");
         	GD::uPnP->start();
 		}
-
+#ifndef __APPLE__
         rl_bind_key('\t', rl_abort); //no autocompletion
-
+#endif
 		char* inputBuffer = nullptr;
         if(_startAsDaemon)
         {

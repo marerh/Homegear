@@ -29,6 +29,7 @@
 
 #include "HMW-LGW.h"
 #include "../GD.h"
+#include <random>
 
 namespace HMWired
 {
